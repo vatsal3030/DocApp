@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { 
-  FileText, 
-  Plus, 
-  Eye, 
-  LogOut, 
-  User, 
-  Menu, 
+import {
+  FileText,
+  Plus,
+  Eye,
+  LogOut,
+  User,
+  Menu,
   X,
   Settings,
   Bell
@@ -89,13 +89,14 @@ const Navbar = () => {
                 <>
                   <a
                     href="/signin"
-                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign In
                   </a>
+
                   <a
                     href="/signup"
-                    className="px-4 py-2 rounded-md text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                    className="px-4 py-2 rounded-md text-sm font-medium text-white hover:from-blue-600  hover:bg-blue-50 transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign Up
                   </a>
@@ -204,13 +205,13 @@ const Navbar = () => {
                 <>
                   <a
                     href="/signin"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-white transition-colors duration-200"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-white transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign In
                   </a>
                   <a
                     href="/signup"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-white  hover:text-blue-600 hover:bg-white transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign Up
                   </a>
