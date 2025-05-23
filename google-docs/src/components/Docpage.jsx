@@ -18,19 +18,28 @@ const DocPage = () => {
   const [loadingDoc, setLoadingDoc] = useState(true);
 
   const hasWriteAccess = () => {
-    if (!docData || !user) return false;
-    return (
-      accessType === 'write' ||
-      docData.owner === user.uid ||
-      docData.access?.customEmails?.includes(user.email)
-    );
+    if (!docData) return false;
+    if (docData.owner === user?.uid) return true;
+
+    const isCustom = docData.access?.customEmails?.includes(user?.email);
+    const isPublicWrite = docData.access?.readWrite === true &&
+      (!docData.access?.customEmails || docData.access.customEmails.length === 0);
+
+    return isCustom || isPublicWrite;
   };
+
 
   const hasReadAccess = () => {
     if (!docData) return false;
-    if (accessType === 'read') return docData.publicRead;
-    return hasWriteAccess(); // implies access via write or custom
+    if (docData.owner === user?.uid) return true;
+
+    const isCustom = docData.access?.customEmails?.includes(user?.email);
+    const isPublicWrite = docData.access?.readWrite === true &&
+      (!docData.access?.customEmails || docData.access.customEmails.length === 0);
+
+    return docData.publicRead || isCustom || isPublicWrite;
   };
+
 
   useEffect(() => {
     if (loadingAuth) return;
