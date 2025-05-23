@@ -58,14 +58,12 @@ const DocPage = () => {
         }
 
         const data = docSnap.data();
-        const allowed =
-          accessType === 'read'
-            ? data.publicRead
-            : accessType === 'write'
-              ? data.access?.readWrite
-              : user &&
-              (data.owner === user.uid || data.access?.customEmails?.includes(user.email));
-
+        const allowed = user && (
+          data.owner === user.uid ||
+          data.access?.readWrite === true ||
+          data.access?.customEmails?.includes(user.email) ||
+          (accessType === 'read' && data.publicRead === true)
+        );
         if (!allowed) {
           setError('Access denied.');
           toast.dismiss();
