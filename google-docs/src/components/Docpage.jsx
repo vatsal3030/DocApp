@@ -50,6 +50,54 @@ const DocPage = () => {
     }
   }, [user, loadingAuth, accessType, docId, navigate]);
 
+  // useEffect(() => {
+  //   if (!docId) return;
+
+  //   const loadDocument = async () => {
+  //     setLoadingDoc(true);
+  //     setError('');
+
+  //     try {
+  //       const docRef = doc(db, 'documents', docId);
+  //       const docSnap = await getDoc(docRef);
+
+  //       if (!docSnap.exists()) {
+  //         setError('Document not found.');
+  //         return;
+  //       }
+
+  //       const data = docSnap.data();
+  //       const customEmails = data.access?.customEmails || [];
+  //       const isCustom = user && customEmails.includes(user.email);
+  //       const isPublicWrite = docData.access?.readWrite === true &&
+  //         (!docData.access?.customEmails || docData.access.customEmails.length === 0);
+
+  //       const allowed =
+  //         (user && (data.owner === user.uid || isCustom || isPublicWrite)) ||
+  //         (accessType === 'read' && data.publicRead === true);
+
+  //       if (!allowed) {
+  //         setError('Access denied.');
+  //         toast.dismiss();
+  //         toast.error("Access Denied ! ");
+  //         return;
+  //       }
+
+  //       setDocData({ id: docSnap.id, ...data });
+  //       setContent(data.content);
+  //     } catch (err) {
+  //       toast.dismiss();
+  //       // toast.error('here');
+  //       setError(`Failed to load document: ${err.message}`);
+  //     } finally {
+  //       setLoadingDoc(false);
+  //     }
+  //   };
+
+  //   loadDocument();
+  // }, [docId, accessType, user]);
+
+
   useEffect(() => {
     if (!docId) return;
 
@@ -67,16 +115,20 @@ const DocPage = () => {
         }
 
         const data = docSnap.data();
-        const allowed = user && (
-          data.owner === user.uid ||
-          data.access?.readWrite === true ||
-          data.access?.customEmails?.includes(user.email) ||
-          (accessType === 'read' && data.publicRead === true)
-        );
+
+        const access = data.access || {};
+        const customEmails = Array.isArray(access.customEmails) ? access.customEmails : [];
+        const isCustom = user && customEmails.includes(user.email);
+        const isPublicWrite = access.readWrite === true && customEmails.length === 0;
+
+        const allowed =
+          (user && (data.owner === user.uid || isCustom || isPublicWrite)) ||
+          (accessType === 'read' && data.publicRead === true);
+
         if (!allowed) {
           setError('Access denied.');
           toast.dismiss();
-          toast.error("Access Denied ! ");
+          toast.error("Access Denied!");
           return;
         }
 
@@ -91,6 +143,7 @@ const DocPage = () => {
 
     loadDocument();
   }, [docId, accessType, user]);
+
 
   const handleContentChange = async (e) => {
     const newValue = e.target.value;
