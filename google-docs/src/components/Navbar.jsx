@@ -4,6 +4,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { FileText, Plus, Eye, LogOut, User, Menu, X, Settings, Bell } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast'
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [user] = useAuthState(auth);
@@ -68,36 +69,36 @@ const Navbar = () => {
             <div className="ml-10 flex items-baseline space-x-4">
               {user ? (
                 <>
-                  <a
-                    href="/createdocs"
+                  <Link
+                    to="/createdocs"
                     className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Docs
-                  </a>
-                  <a
-                    href="/viewdocs"
+                  </Link>
+                  <Link
+                    to="/viewdocs"
                     className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     View Docs
-                  </a>
+                  </Link>
                 </>
               ) : (
                 <>
-                  <a
-                    href="/signin"
+                  <Link
+                    to="/signin"
                     className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign In
-                  </a>
+                  </Link>
 
-                  <a
-                    href="/signup"
+                  <Link
+                    to="/signup"
                     className="px-4 py-2 rounded-md text-sm font-medium text-white hover:from-blue-600  hover:bg-blue-50 transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign Up
-                  </a>
+                  </Link>
                 </>
               )}
             </div>
@@ -172,20 +173,20 @@ const Navbar = () => {
                   </div>
 
                   {/* Navigation Links */}
-                  <a
-                    href="/createdocs"
+                  <Link
+                    to="/createdocs"
                     className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-white transition-colors duration-200"
                   >
                     <Plus className="w-5 h-5 mr-3" />
                     Create Docs
-                  </a>
-                  <a
-                    href="/viewdocs"
+                  </Link>
+                  <Link
+                    to="/viewdocs"
                     className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-white transition-colors duration-200"
                   >
                     <Eye className="w-5 h-5 mr-3" />
                     View Docs
-                  </a>
+                  </Link>
 
                   {/* Divider */}
                   <div className="border-t border-gray-200 my-2"></div>
@@ -201,18 +202,18 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
-                  <a
-                    href="/signin"
+                  <Link
+                    to="/signin"
                     className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-white transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign In
-                  </a>
-                  <a
-                    href="/signup"
+                  </Link>
+                  <Link
+                    to="/signup"
                     className="block px-3 py-2 rounded-md text-base font-medium text-white  hover:text-blue-600 hover:bg-white transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign Up
-                  </a>
+                  </Link>
                 </>
               )}
             </div>
