@@ -288,10 +288,18 @@ const ViewDocs = () => {
                               {docItem.title}
                             </h3>
                             <div className="flex items-center mt-1 text-xs text-gray-500">
+                              {/* <div className='flex items-center'> */}
                               <Clock className="w-3 h-3 mr-1" />
                               <span>
                                 {docItem.updatedAt?.toDate?.()?.toLocaleDateString() || 'Unknown'}
                               </span>
+                              {/* </div> */}
+                              {/* <div className='flex items-center'>
+                                <Clock className="w-3 h-3 mr-1" />
+                                <span>
+                                  {docItem.updatedBy.firstName || 'Unknown'}
+                                </span>
+                              </div> */}
                             </div>
                           </div>
                           <div className="flex items-center space-x-1 ml-2">
