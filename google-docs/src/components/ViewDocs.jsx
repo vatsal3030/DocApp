@@ -21,7 +21,6 @@ const ViewDocs = () => {
   });
   const [savingAccess, setSavingAccess] = useState(false);
 
-  // Fetch documents created by the user
   useEffect(() => {
     if (!user) return;
 
@@ -41,7 +40,23 @@ const ViewDocs = () => {
     return () => unsubscribe();
   }, [user]);
 
-  // Load document on selection
+  const canRead = (docData) => {
+    return (
+      docData.owner === user?.uid ||
+      docData.publicRead === true ||
+      docData.access?.customEmails?.includes(user?.email) ||
+      (docData.access?.readWrite === true && (!docData.access?.customEmails || docData.access.customEmails.length === 0))
+    );
+  };
+
+  const canWrite = (docData) => {
+    return (
+      docData.owner === user?.uid ||
+      docData.access?.customEmails?.includes(user?.email) ||
+      (docData.access?.readWrite === true && (!docData.access?.customEmails || docData.access.customEmails.length === 0))
+    );
+  };
+
   const selectDoc = async (docId) => {
     setLoading(true);
     setError('');
@@ -51,7 +66,7 @@ const ViewDocs = () => {
 
       if (!docSnap.exists()) {
         toast.dismiss();
-        toast.error('Documnet not found !')
+        toast.error('Document not found!');
         setError('Document not found.');
         setSelectedDoc(null);
         setContent('');
@@ -61,16 +76,10 @@ const ViewDocs = () => {
 
       const data = docSnap.data();
 
-      // --- In selectDoc:
-      if (
-        data.owner !== user.uid &&
-        !(data.access?.customEmails?.includes(user.email)) &&
-        !data.publicRead &&
-        !data.access?.readWrite
-      ) {
-        setError('You do not have access to this document.');
+      if (!canRead(data)) {
         toast.dismiss();
-        toast.error('You do not have access !')
+        toast.error('You do not have access!');
+        setError('You do not have access to this document.');
         setSelectedDoc(null);
         setContent('');
         setLoading(false);
@@ -94,21 +103,8 @@ const ViewDocs = () => {
     setLoading(false);
   };
 
-  // Live sync updates
   useEffect(() => {
-    if (!selectedDoc) return;
-
-    // --- In live sync useEffect:
-    if (
-      !user ||
-      !(
-        selectedDoc.owner === user.uid ||
-        selectedDoc.access?.readWrite === true ||
-        selectedDoc.access?.customEmails?.includes(user.email)
-      )
-    ) {
-      return; // skip subscribing if no write access
-    }
+    if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
 
     const docRef = doc(db, 'documents', selectedDoc.id);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
@@ -134,19 +130,7 @@ const ViewDocs = () => {
 
   const handleContentChange = async (e) => {
     setContent(e.target.value);
-    if (!selectedDoc) return;
-
-    // --- In handleContentChange:
-    if (
-      !user ||
-      !(
-        selectedDoc.owner === user.uid ||
-        selectedDoc.access?.readWrite === true ||
-        selectedDoc.access?.customEmails?.includes(user.email)
-      )
-    ) {
-      return; // user can't write
-    }
+    if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
 
     try {
       const docRef = doc(db, 'documents', selectedDoc.id);
@@ -158,7 +142,7 @@ const ViewDocs = () => {
     } catch (err) {
       setError(`Failed to update content: ${err.message}`);
       toast.dismiss();
-      toast.error('Failde to update !')
+      toast.error('Failed to update!');
     }
   };
 
@@ -205,11 +189,11 @@ const ViewDocs = () => {
 
       setError('Access control updated successfully.');
       toast.dismiss();
-      toast.success('Access control updateed !');
+      toast.success('Access control updated!');
     } catch (err) {
       setError(`Failed to update access control: ${err.message}`);
       toast.dismiss();
-      toast.error('Failed to update !')
+      toast.error('Failed to update!');
     }
     setSavingAccess(false);
   };
