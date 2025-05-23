@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/fi
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
 import { FileText, Share2, Eye, Edit, Users, AlertCircle, Plus, Mail } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast'
 
 
 const CreateDocs = () => {
@@ -53,9 +54,12 @@ const CreateDocs = () => {
       setPublicRead(false);
       setReadWrite(false);
       setCustomEmailsText('');
-      alert(`Document created! Shareable links will be available on the View Docs page.`);
+      toast.dismiss();
+      toast.success(`Document created!`);
     } catch (err) {
       setError(`Failed to create document: ${err.message}`);
+      toast.dismiss();
+      toast.error(`Failed to create document: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -236,6 +240,7 @@ const CreateDocs = () => {
           </div>
         </div>
       </div>
+      <Toaster></Toaster>
     </div>
   );
 };

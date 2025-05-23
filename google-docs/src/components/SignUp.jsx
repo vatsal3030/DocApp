@@ -3,6 +3,7 @@ import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { Eye, EyeOff, User, Mail, Lock, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast'
 
 
 
@@ -30,7 +31,7 @@ const Signup = () => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Update displayName in Firebase Auth (optional)
+            // Update displayName in Firebase Auth in user object (optional)
             await updateProfile(user, {
                 displayName: `${firstName.trim()} ${lastName.trim()}`,
             });
@@ -42,11 +43,13 @@ const Signup = () => {
                 email: email.trim(),
                 createdAt: new Date(),
             });
-
-            // Optionally reset form or redirect
+            toast.dismiss();
+            toast.success("Successfully Sign Up!");
 
         } catch (err) {
             setError(err.message);
+            toast.dismiss();
+            toast.error(`Error: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -163,6 +166,7 @@ const Signup = () => {
                     </div>
                 </div>
             </div>
+            <Toaster />
         </div>
     );
 };

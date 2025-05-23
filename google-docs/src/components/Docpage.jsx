@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { toast, Toaster } from 'react-hot-toast';
 
 const DocPage = () => {
   const { docId } = useParams();
@@ -61,12 +62,14 @@ const DocPage = () => {
           accessType === 'read'
             ? data.publicRead
             : accessType === 'write'
-            ? data.access?.readWrite
-            : user &&
+              ? data.access?.readWrite
+              : user &&
               (data.owner === user.uid || data.access?.customEmails?.includes(user.email));
 
         if (!allowed) {
           setError('Access denied.');
+          toast.dismiss();
+          toast.error("Access Denied ! ");
           return;
         }
 
@@ -115,7 +118,7 @@ const DocPage = () => {
         rows={20}
         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
       />
-
+      <Toaster></Toaster>
       {!hasWriteAccess() && (
         <p className="text-sm text-gray-600 mt-2 italic">
           You have read-only access to this document.

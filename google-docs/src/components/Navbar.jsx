@@ -2,17 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import {
-  FileText,
-  Plus,
-  Eye,
-  LogOut,
-  User,
-  Menu,
-  X,
-  Settings,
-  Bell
-} from 'lucide-react';
+import { FileText, Plus, Eye, LogOut, User, Menu, X, Settings, Bell } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast'
 
 const Navbar = () => {
   const [user] = useAuthState(auth);
@@ -24,6 +15,7 @@ const Navbar = () => {
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
+          // console.log(userDoc.data());
           if (userDoc.exists()) {
             setFirstName(userDoc.data().firstName || '');
           } else {
@@ -42,7 +34,13 @@ const Navbar = () => {
   }, [user]);
 
   const handleLogout = () => {
-    auth.signOut();
+    auth.signOut()
+      .then(() => {
+        toast.success("Successfully Logged Out!");
+      })
+      .catch((err) => {
+        toast.error(`Error: ${err.message}`);
+      });
   };
 
   const toggleMenu = () => {
@@ -221,6 +219,7 @@ const Navbar = () => {
           </div>
         )}
       </div>
+      <Toaster></Toaster>
     </nav>
   );
 };

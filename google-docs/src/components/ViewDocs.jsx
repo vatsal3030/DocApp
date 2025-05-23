@@ -1,34 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  serverTimestamp,
-  getDoc,
-} from 'firebase/firestore';
-import {
-  FileText,
-  Share2,
-  Eye,
-  Edit,
-  Users,
-  AlertCircle,
-  Save,
-  Link,
-  CheckCircle,
-  Clock,
-  User,
-  Settings,
-  Globe,
-  Mail,
-  Lock,
-  Loader
-} from 'lucide-react';
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc, } from 'firebase/firestore';
+import { FileText, Share2, Eye, Edit, Users, AlertCircle, Save, Link, CheckCircle, Clock, User, Settings, Globe, Mail, Lock, Loader } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast'
+
 
 const ViewDocs = () => {
   const [user] = useAuthState(auth);
@@ -58,6 +34,8 @@ const ViewDocs = () => {
       setDocs(docsData);
     }, (err) => {
       setError(`Failed to fetch documents: ${err.message}`);
+      toast.dismiss();
+      toast.error(`Failed to fetch documents: ${err.message}`);
     });
 
     return () => unsubscribe();
@@ -72,6 +50,8 @@ const ViewDocs = () => {
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
+        toast.dismiss();
+        toast.error('Documnet not found !')
         setError('Document not found.');
         setSelectedDoc(null);
         setContent('');
@@ -89,6 +69,8 @@ const ViewDocs = () => {
         !data.access?.readWrite
       ) {
         setError('You do not have access to this document.');
+        toast.dismiss();
+        toast.error('You do not have access !')
         setSelectedDoc(null);
         setContent('');
         setLoading(false);
@@ -104,6 +86,8 @@ const ViewDocs = () => {
       });
     } catch (err) {
       setError(`Failed to load document: ${err.message}`);
+      toast.dismiss();
+      toast.error(`Failed to load document: ${err.message}`);
       setSelectedDoc(null);
       setContent('');
     }
@@ -173,6 +157,8 @@ const ViewDocs = () => {
       });
     } catch (err) {
       setError(`Failed to update content: ${err.message}`);
+      toast.dismiss();
+      toast.error('Failde to update !')
     }
   };
 
@@ -218,8 +204,12 @@ const ViewDocs = () => {
       }));
 
       setError('Access control updated successfully.');
+      toast.dismiss();
+      toast.success('Access control updateed !');
     } catch (err) {
       setError(`Failed to update access control: ${err.message}`);
+      toast.dismiss();
+      toast.error('Failed to update !')
     }
     setSavingAccess(false);
   };
@@ -247,11 +237,10 @@ const ViewDocs = () => {
 
         {/* Error Alert */}
         {error && (
-          <div className={`mb-6 p-4 rounded-lg border-l-4 ${
-            error.includes('successfully') 
-              ? 'bg-green-50 border-green-400 text-green-700' 
-              : 'bg-red-50 border-red-400 text-red-700'
-          }`}>
+          <div className={`mb-6 p-4 rounded-lg border-l-4 ${error.includes('successfully')
+            ? 'bg-green-50 border-green-400 text-green-700'
+            : 'bg-red-50 border-red-400 text-red-700'
+            }`}>
             <div className="flex items-center">
               {error.includes('successfully') ? (
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -273,7 +262,7 @@ const ViewDocs = () => {
                   Your Documents
                 </h2>
               </div>
-              
+
               <div className="p-4">
                 {docs.length === 0 ? (
                   <div className="text-center py-8">
@@ -287,17 +276,15 @@ const ViewDocs = () => {
                       <div
                         key={docItem.id}
                         onClick={() => selectDoc(docItem.id)}
-                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border ${
-                          selectedDoc?.id === docItem.id
-                            ? 'bg-blue-50 border-blue-200 shadow-sm'
-                            : 'bg-gray-50 border-gray-100 hover:bg-gray-100 hover:shadow-sm'
-                        }`}
+                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border ${selectedDoc?.id === docItem.id
+                          ? 'bg-blue-50 border-blue-200 shadow-sm'
+                          : 'bg-gray-50 border-gray-100 hover:bg-gray-100 hover:shadow-sm'
+                          }`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className={`font-medium truncate ${
-                              selectedDoc?.id === docItem.id ? 'text-blue-900' : 'text-gray-900'
-                            }`}>
+                            <h3 className={`font-medium truncate ${selectedDoc?.id === docItem.id ? 'text-blue-900' : 'text-gray-900'
+                              }`}>
                               {docItem.title}
                             </h3>
                             <div className="flex items-center mt-1 text-xs text-gray-500">
@@ -349,7 +336,7 @@ const ViewDocs = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Content Editor */}
                   <div className="relative">
                     <textarea
@@ -538,6 +525,7 @@ const ViewDocs = () => {
           </div>
         </div>
       </div>
+      <Toaster></Toaster>
     </div>
   );
 };

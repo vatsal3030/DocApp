@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import { toast, Toaster } from 'react-hot-toast'
+
 
 // Import icons from lucide-react
 import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
@@ -22,11 +24,15 @@ const Signin = () => {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      toast.dismiss();
+      toast.success("Successfully Sign In !");
       setEmail('');
       setPassword('');
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
+      toast.dismiss();
+      toast.error(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -119,6 +125,7 @@ const Signin = () => {
           </form>
         </div>
       </div>
+      <Toaster></Toaster>
     </div>
   );
 };
