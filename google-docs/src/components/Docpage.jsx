@@ -1,98 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { toast, Toaster } from 'react-hot-toast';
-import { onSnapshot } from 'firebase/firestore';
-import { useRef } from 'react';
 
 const DocPage = () => {
   const { docId } = useParams();
   const [searchParams] = useSearchParams();
-  const accessType = searchParams.get('access'); // 'read' or 'write' or null
+  const accessType = searchParams.get('access');
   const navigate = useNavigate();
 
   const [user, loadingAuth] = useAuthState(auth);
   const [docData, setDocData] = useState(null);
   const [content, setContent] = useState('');
+  const [debouncedContent, setDebouncedContent] = useState('');
   const [error, setError] = useState('');
   const [loadingDoc, setLoadingDoc] = useState(true);
+  const [cursorPos, setCursorPos] = useState(0);
 
+  const textareaRef = useRef(null);
 
-  // Ref to textarea for cursor control
-  const textareaRef = React.useRef(null);
+  // Helper to generate a key for storing cursor position in localStorage
+  const getCursorStorageKey = (id) => `docCursorPos_${id || ''}`;
 
-  // LocalStorage key based on doc id to store cursor position
-  const getCursorStorageKey = () => `docCursorPos_${selectedDoc?.id || ''}`;
-
-  // Save cursor position locally
-  const saveCursorPosition = (pos) => {
-    if (!selectedDoc) return;
-    localStorage.setItem(getCursorStorageKey(), pos);
+  // Save cursor position
+  const saveCursorPosition = (pos, id) => {
+    if (!id) return;
+    localStorage.setItem(getCursorStorageKey(id), pos);
   };
 
-  // Get saved cursor position or 0
-  const getCursorPosition = () => {
-    if (!selectedDoc) return 0;
-    return parseInt(localStorage.getItem(getCursorStorageKey())) || 0;
+  // Get cursor position from localStorage
+  const getCursorPosition = (id) => {
+    return parseInt(localStorage.getItem(getCursorStorageKey(id))) || 0;
   };
 
-  // Save cursor on selection/caret movement
-  const handleCursorChange = (e) => {
-    saveCursorPosition(e.target.selectionStart);
-  };
-
-
-
-
+  // Check if user has write access
   const hasWriteAccess = () => {
-    if (!docData) return false;
-    if (docData.owner === user?.uid) return true;
-
-    const isCustom = docData.access?.customEmails?.includes(user?.email);
-    const isPublicWrite = docData.access?.readWrite === true &&
+    if (!docData || !user) return false;
+    const isOwner = docData.owner === user.uid;
+    const isCustom = docData.access?.customEmails?.includes(user.email);
+    const isPublicWrite =
+      docData.access?.readWrite === true &&
       (!docData.access?.customEmails || docData.access.customEmails.length === 0);
-
-    return isCustom || isPublicWrite;
+    return isOwner || isCustom || isPublicWrite;
   };
 
-  async function updateCursor(docId, userId, cursorPosition, color = "blue") {
-    const cursorRef = doc(db, "documents", docId, "cursors", userId);
-    await setDoc(cursorRef, {
-      line: cursorPosition.line,
-      ch: cursorPosition.ch,
-      color: color,
-    }, { merge: true }); // merge keeps existing fields
-  }
-
-
-
-  const hasReadAccess = () => {
-    if (!docData) return false;
-    if (docData.owner === user?.uid) return true;
-
-    const isCustom = docData.access?.customEmails?.includes(user?.email);
-    const isPublicWrite = docData.access?.readWrite === true &&
-      (!docData.access?.customEmails || docData.access.customEmails.length === 0);
-
-    return docData.publicRead || isCustom || isPublicWrite;
-  };
-
-
+  // Redirect if not logged in and not read access
   useEffect(() => {
     if (loadingAuth) return;
-
     if (!user && accessType !== 'read') {
-      // Redirect to login with return path
       navigate(`/login?redirect=/doc/${docId}?access=${accessType}`);
     }
   }, [user, loadingAuth, accessType, docId, navigate]);
 
-
+  // Fetch and sync document
   useEffect(() => {
-    if (!docId) return;
-
     const docRef = doc(db, 'documents', docId);
     const unsubscribe = onSnapshot(
       docRef,
@@ -122,19 +85,20 @@ const DocPage = () => {
         }
 
         setDocData({ id: docSnap.id, ...data });
-        setContent(data.content);
 
-        // Restore cursor position after updating content, after render
-        setTimeout(() => {
-          if (textareaRef.current) {
-            const savedPos = getCursorPosition();
-            // Clamp saved position within content length
-            const pos = Math.min(savedPos, (data.content || '').length);
-            textareaRef.current.selectionStart = pos;
-            textareaRef.current.selectionEnd = pos;
-            textareaRef.current.focus();
-          }
-        }, 0);
+        if (data.content !== content) {
+          setContent(data.content);
+          setDebouncedContent(data.content);
+
+          requestAnimationFrame(() => {
+            if (textareaRef.current) {
+              const pos = Math.min(getCursorPosition(docSnap.id), data.content.length);
+              textareaRef.current.selectionStart = pos;
+              textareaRef.current.selectionEnd = pos;
+              setCursorPos(pos);
+            }
+          });
+        }
 
         setLoadingDoc(false);
       },
@@ -144,33 +108,57 @@ const DocPage = () => {
       }
     );
 
-    return () => unsubscribe(); // Cleanup on unmount
+    return () => unsubscribe();
   }, [docId, accessType, user]);
 
+  // Debounce content updates
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedContent(content);
+    }, 0);
 
-  const handleContentChange = async (e) => {
-    const newValue = e.target.value;
-    setContent(newValue);
-    saveCursorPosition(e.target.selectionStart);
+    return () => clearTimeout(handler);
+  }, [content]);
 
+  // Update Firestore when debounced content changes
+  useEffect(() => {
+    const updateContent = async () => {
+      if (!docData || !user || !hasWriteAccess()) return;
+      try {
+        const docRef = doc(db, 'documents', docData.id);
+        await updateDoc(docRef, {
+          content: debouncedContent,
+          updatedAt: serverTimestamp(),
+          updatedBy: user.uid || user.email,
+        });
+      } catch (err) {
+        setError(`Failed to update content: ${err.message}`);
+        toast.dismiss();
+        toast.error('Failed to update!');
+      }
+    };
 
-    if (!hasWriteAccess()) return;
-
-    try {
-      const docRef = doc(db, 'documents', docData.id);
-      await updateDoc(docRef, {
-        content: newValue,
-        updatedAt: serverTimestamp(),
-        updatedBy: user.uid || user.email,
-      });
-    } catch (err) {
-      setError(`Failed to update content: ${err.message}`);
+    if (debouncedContent !== docData?.content) {
+      updateContent();
     }
+  }, [debouncedContent]);
+
+  // Handle textarea content changes and cursor tracking
+  const handleContentChange = (e) => {
+    const newText = e.target.value;
+    const pos = e.target.selectionStart;
+    setContent(newText);
+    saveCursorPosition(pos, docData?.id);
+    setCursorPos(pos);
   };
 
+  const handleCursorChange = (e) => {
+    const pos = e.target.selectionStart;
+    saveCursorPosition(pos, docData?.id);
+    setCursorPos(pos);
+  };
 
   if (loadingAuth || loadingDoc) return <p>Loading...</p>;
-
   if (error) return <p className="text-red-600 text-center mt-10">{error}</p>;
 
   return (
@@ -189,7 +177,7 @@ const DocPage = () => {
         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
       />
 
-      <Toaster></Toaster>
+      <Toaster />
       {!hasWriteAccess() && (
         <p className="text-sm text-gray-600 mt-2 italic">
           You have read-only access to this document.

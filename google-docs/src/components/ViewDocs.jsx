@@ -134,7 +134,7 @@ const ViewDocs = () => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedContent(content);
-    }, 500); // Adjust delay as needed
+    }, 0); // Adjust delay as needed
 
     return () => clearTimeout(timeout);
   }, [content]);
