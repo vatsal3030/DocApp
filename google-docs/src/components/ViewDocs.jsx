@@ -23,6 +23,32 @@ const ViewDocs = () => {
   });
   const [savingAccess, setSavingAccess] = useState(false);
 
+  // Ref to textarea for cursor control
+  const textareaRef = React.useRef(null);
+
+  // LocalStorage key based on doc id to store cursor position
+  const getCursorStorageKey = () => `docCursorPos_${selectedDoc?.id || ''}`;
+
+  // Save cursor position locally
+  const saveCursorPosition = (pos) => {
+    if (!selectedDoc) return;
+    localStorage.setItem(getCursorStorageKey(), pos);
+  };
+
+  // Get saved cursor position or 0
+  const getCursorPosition = () => {
+    if (!selectedDoc) return 0;
+    return parseInt(localStorage.getItem(getCursorStorageKey())) || 0;
+  };
+
+  // Save cursor on selection/caret movement
+  const handleCursorChange = (e) => {
+    saveCursorPosition(e.target.selectionStart);
+  };
+
+
+
+
   useEffect(() => {
     if (!user) return;
 
@@ -149,6 +175,19 @@ const ViewDocs = () => {
           readWrite: data.access?.readWrite || false,
           customEmails: (data.access?.customEmails || []).join(', '),
         });
+
+        // Restore cursor position after updating content, after render
+        setTimeout(() => {
+          if (textareaRef.current) {
+            const savedPos = getCursorPosition();
+            // Clamp saved position within content length
+            const pos = Math.min(savedPos, (data.content || '').length);
+            textareaRef.current.selectionStart = pos;
+            textareaRef.current.selectionEnd = pos;
+            textareaRef.current.focus();
+          }
+        }, 0);
+
       }
     });
 
@@ -156,49 +195,9 @@ const ViewDocs = () => {
   }, [selectedDoc?.id, user]);
 
 
-
-  // useEffect(() => {
-  //   if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
-
-  //   const docRef = doc(db, 'documents', selectedDoc.id);
-  //   const unsubscribe = onSnapshot(docRef, (docSnap) => {
-  //     if (docSnap.exists()) {
-  //       const data = docSnap.data();
-  //       if (
-  //         data.updatedAt &&
-  //         data.updatedAt.toMillis() !== selectedDoc.updatedAt?.toMillis()
-  //       ) {
-  //         setContent(data.content);
-  //         setSelectedDoc((prev) => ({ ...prev, ...data }));
-  //         setAccessControl({
-  //           publicRead: data.publicRead || false,
-  //           readWrite: data.access?.readWrite || false,
-  //           customEmails: (data.access?.customEmails || []).join(', '),
-  //         });
-  //       }
-  //     }
-  //   });
-
-  //   return () => unsubscribe();
-  // }, [selectedDoc, user]);
-
   const handleContentChange = async (e) => {
     setContent(e.target.value);
-
-    // if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
-
-    // try {
-    //   const docRef = doc(db, 'documents', selectedDoc.id);
-    //   await updateDoc(docRef, {
-    //     content: e.target.value,
-    //     updatedAt: serverTimestamp(),
-    //     updatedBy: user.uid || user.email,
-    //   });
-    // } catch (err) {
-    //   setError(`Failed to update content: ${err.message}`);
-    //   toast.dismiss();
-    //   toast.error('Failed to update!');
-    // }
+    saveCursorPosition(e.target.selectionStart);
   };
 
   const handleAccessChange = (field, value) => {
@@ -386,13 +385,26 @@ const ViewDocs = () => {
 
                   {/* Content Editor */}
                   <div className="relative">
-                    <textarea
+                    {/* <textarea
                       value={content}
                       onChange={handleContentChange}
                       rows="12"
                       className="w-full p-4 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       placeholder="Start writing your document content here..."
+                    /> */}
+
+                    <textarea
+                      ref={textareaRef}
+                      value={content}
+                      onChange={handleContentChange}
+                      onSelect={handleCursorChange}
+                      onKeyUp={handleCursorChange}
+                      onClick={handleCursorChange}
+                      disabled={!canWrite(selectedDoc)}
+                      rows={12}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
                     />
+
                     <div className="absolute bottom-3 right-3 text-xs text-gray-400">
                       {content.length} characters
                     </div>
