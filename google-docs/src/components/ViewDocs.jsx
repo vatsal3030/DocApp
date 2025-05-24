@@ -13,6 +13,8 @@ const ViewDocs = () => {
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [debouncedContent, setDebouncedContent] = useState('');
+
 
   const [accessControl, setAccessControl] = useState({
     publicRead: false,
@@ -104,46 +106,99 @@ const ViewDocs = () => {
   };
 
   useEffect(() => {
-    if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
+    const timeout = setTimeout(() => {
+      setDebouncedContent(content);
+    }, 500); // Adjust delay as needed
+
+    return () => clearTimeout(timeout);
+  }, [content]);
+
+  useEffect(() => {
+    const updateContent = async () => {
+      if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
+      try {
+        const docRef = doc(db, 'documents', selectedDoc.id);
+        await updateDoc(docRef, {
+          content: debouncedContent,
+          updatedAt: serverTimestamp(),
+          updatedBy: user.uid || user.email,
+        });
+      } catch (err) {
+        setError(`Failed to update content: ${err.message}`);
+        toast.dismiss();
+        toast.error('Failed to update!');
+      }
+    };
+
+    if (debouncedContent !== selectedDoc?.content) {
+      updateContent();
+    }
+  }, [debouncedContent]);
+
+  useEffect(() => {
+    if (!selectedDoc || !user || !canRead(selectedDoc)) return;
 
     const docRef = doc(db, 'documents', selectedDoc.id);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (
-          data.updatedAt &&
-          data.updatedAt.toMillis() !== selectedDoc.updatedAt?.toMillis()
-        ) {
-          setContent(data.content);
-          setSelectedDoc((prev) => ({ ...prev, ...data }));
-          setAccessControl({
-            publicRead: data.publicRead || false,
-            readWrite: data.access?.readWrite || false,
-            customEmails: (data.access?.customEmails || []).join(', '),
-          });
-        }
+        setContent(data.content || '');
+        setSelectedDoc((prev) => ({ ...prev, ...data }));
+        setAccessControl({
+          publicRead: data.publicRead || false,
+          readWrite: data.access?.readWrite || false,
+          customEmails: (data.access?.customEmails || []).join(', '),
+        });
       }
     });
 
     return () => unsubscribe();
-  }, [selectedDoc, user]);
+  }, [selectedDoc?.id, user]);
+
+
+
+  // useEffect(() => {
+  //   if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
+
+  //   const docRef = doc(db, 'documents', selectedDoc.id);
+  //   const unsubscribe = onSnapshot(docRef, (docSnap) => {
+  //     if (docSnap.exists()) {
+  //       const data = docSnap.data();
+  //       if (
+  //         data.updatedAt &&
+  //         data.updatedAt.toMillis() !== selectedDoc.updatedAt?.toMillis()
+  //       ) {
+  //         setContent(data.content);
+  //         setSelectedDoc((prev) => ({ ...prev, ...data }));
+  //         setAccessControl({
+  //           publicRead: data.publicRead || false,
+  //           readWrite: data.access?.readWrite || false,
+  //           customEmails: (data.access?.customEmails || []).join(', '),
+  //         });
+  //       }
+  //     }
+  //   });
+
+  //   return () => unsubscribe();
+  // }, [selectedDoc, user]);
 
   const handleContentChange = async (e) => {
     setContent(e.target.value);
-    if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
 
-    try {
-      const docRef = doc(db, 'documents', selectedDoc.id);
-      await updateDoc(docRef, {
-        content: e.target.value,
-        updatedAt: serverTimestamp(),
-        updatedBy: user.uid || user.email,
-      });
-    } catch (err) {
-      setError(`Failed to update content: ${err.message}`);
-      toast.dismiss();
-      toast.error('Failed to update!');
-    }
+    // if (!selectedDoc || !user || !canWrite(selectedDoc)) return;
+
+    // try {
+    //   const docRef = doc(db, 'documents', selectedDoc.id);
+    //   await updateDoc(docRef, {
+    //     content: e.target.value,
+    //     updatedAt: serverTimestamp(),
+    //     updatedBy: user.uid || user.email,
+    //   });
+    // } catch (err) {
+    //   setError(`Failed to update content: ${err.message}`);
+    //   toast.dismiss();
+    //   toast.error('Failed to update!');
+    // }
   };
 
   const handleAccessChange = (field, value) => {

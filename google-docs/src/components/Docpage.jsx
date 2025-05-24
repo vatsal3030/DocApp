@@ -4,6 +4,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { toast, Toaster } from 'react-hot-toast';
+import { onSnapshot } from 'firebase/firestore';
 
 const DocPage = () => {
   const { docId } = useParams();
@@ -98,24 +99,67 @@ const DocPage = () => {
   // }, [docId, accessType, user]);
 
 
+  // useEffect(() => {
+  //   if (!docId) return;
+
+  //   const loadDocument = async () => {
+  //     setLoadingDoc(true);
+  //     setError('');
+
+  //     try {
+  //       const docRef = doc(db, 'documents', docId);
+  //       const docSnap = await getDoc(docRef);
+
+  //       if (!docSnap.exists()) {
+  //         setError('Document not found.');
+  //         return;
+  //       }
+
+  //       const data = docSnap.data();
+
+  //       const access = data.access || {};
+  //       const customEmails = Array.isArray(access.customEmails) ? access.customEmails : [];
+  //       const isCustom = user && customEmails.includes(user.email);
+  //       const isPublicWrite = access.readWrite === true && customEmails.length === 0;
+
+  //       const allowed =
+  //         (user && (data.owner === user.uid || isCustom || isPublicWrite)) ||
+  //         (accessType === 'read' && data.publicRead === true);
+
+  //       if (!allowed) {
+  //         setError('Access denied.');
+  //         toast.dismiss();
+  //         toast.error("Access Denied!");
+  //         return;
+  //       }
+
+  //       setDocData({ id: docSnap.id, ...data });
+  //       setContent(data.content);
+  //     } catch (err) {
+  //       setError(`Failed to load document: ${err.message}`);
+  //     } finally {
+  //       setLoadingDoc(false);
+  //     }
+  //   };
+
+  //   loadDocument();
+  // }, [docId, accessType, user]);
+
+
   useEffect(() => {
     if (!docId) return;
 
-    const loadDocument = async () => {
-      setLoadingDoc(true);
-      setError('');
-
-      try {
-        const docRef = doc(db, 'documents', docId);
-        const docSnap = await getDoc(docRef);
-
+    const docRef = doc(db, 'documents', docId);
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
         if (!docSnap.exists()) {
           setError('Document not found.');
+          setLoadingDoc(false);
           return;
         }
 
         const data = docSnap.data();
-
         const access = data.access || {};
         const customEmails = Array.isArray(access.customEmails) ? access.customEmails : [];
         const isCustom = user && customEmails.includes(user.email);
@@ -128,20 +172,22 @@ const DocPage = () => {
         if (!allowed) {
           setError('Access denied.');
           toast.dismiss();
-          toast.error("Access Denied!");
+          toast.error('Access Denied!');
+          setLoadingDoc(false);
           return;
         }
 
         setDocData({ id: docSnap.id, ...data });
         setContent(data.content);
-      } catch (err) {
+        setLoadingDoc(false);
+      },
+      (err) => {
         setError(`Failed to load document: ${err.message}`);
-      } finally {
         setLoadingDoc(false);
       }
-    };
+    );
 
-    loadDocument();
+    return () => unsubscribe(); // Cleanup on unmount
   }, [docId, accessType, user]);
 
 
