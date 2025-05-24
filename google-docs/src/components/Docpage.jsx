@@ -20,19 +20,27 @@ const DocPage = () => {
   const [loadingDoc, setLoadingDoc] = useState(true);
 
 
-  const textareaRef = useRef(null);
+  // Ref to textarea for cursor control
+  const textareaRef = React.useRef(null);
 
-  const getCursorStorageKey = () => `docCursorPos_${docId || ''}`;
+  // LocalStorage key based on doc id to store cursor position
+  const getCursorStorageKey = () => `docCursorPos_${selectedDoc?.id || ''}`;
 
+  // Save cursor position locally
   const saveCursorPosition = (pos) => {
-    if (!docId) return;
+    if (!selectedDoc) return;
     localStorage.setItem(getCursorStorageKey(), pos);
   };
 
   // Get saved cursor position or 0
   const getCursorPosition = () => {
-    if (!docId) return 0;
+    if (!selectedDoc) return 0;
     return parseInt(localStorage.getItem(getCursorStorageKey())) || 0;
+  };
+
+  // Save cursor on selection/caret movement
+  const handleCursorChange = (e) => {
+    saveCursorPosition(e.target.selectionStart);
   };
 
 
@@ -116,10 +124,11 @@ const DocPage = () => {
         setDocData({ id: docSnap.id, ...data });
         setContent(data.content);
 
-        // Restore cursor position on content update
+        // Restore cursor position after updating content, after render
         setTimeout(() => {
           if (textareaRef.current) {
             const savedPos = getCursorPosition();
+            // Clamp saved position within content length
             const pos = Math.min(savedPos, (data.content || '').length);
             textareaRef.current.selectionStart = pos;
             textareaRef.current.selectionEnd = pos;
@@ -142,6 +151,8 @@ const DocPage = () => {
   const handleContentChange = async (e) => {
     const newValue = e.target.value;
     setContent(newValue);
+    saveCursorPosition(e.target.selectionStart);
+
 
     if (!hasWriteAccess()) return;
 
@@ -157,10 +168,6 @@ const DocPage = () => {
     }
   };
 
-  // Save cursor position on selection/caret move
-  const handleCursorChange = (e) => {
-    saveCursorPosition(e.target.selectionStart);
-  };
 
   if (loadingAuth || loadingDoc) return <p>Loading...</p>;
 
